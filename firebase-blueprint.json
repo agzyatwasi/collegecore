@@ -1,0 +1,296 @@
+{
+  "entities": {
+    "AdminAccount": {
+      "title": "AdminAccount",
+      "description": "Authorized college administrator registry document.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID of the admin" },
+        "email": { "type": "string", "description": "Verified Google email of the admin" },
+        "displayName": { "type": "string", "description": "Administrator display name" },
+        "addedBy": { "type": "string", "description": "UID of admin who granted access" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["uid", "email", "displayName", "addedBy", "createdAt"]
+    },
+    "StudentProfile": {
+      "title": "StudentProfile",
+      "description": "Student profile and academic enrollment metadata.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "rollNumber": { "type": "string" },
+        "courseId": { "type": "string" },
+        "courseName": { "type": "string" },
+        "branchId": { "type": "string" },
+        "branchName": { "type": "string" },
+        "academicYear": { "type": "integer" },
+        "semester": { "type": "integer" },
+        "photoUrl": { "type": "string" },
+        "profileCompleted": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "fullName", "email", "rollNumber", "courseId", "courseName", "academicYear", "semester", "profileCompleted", "createdAt", "updatedAt"]
+    },
+    "ReadNotice": {
+      "title": "ReadNotice",
+      "description": "Per-student read receipt for a notice.",
+      "type": "object",
+      "properties": {
+        "noticeId": { "type": "string" },
+        "readAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["noticeId", "readAt"]
+    },
+    "AcademicCourse": {
+      "title": "AcademicCourse",
+      "description": "Configurable degree program (e.g. B.Tech, BCA).",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "durationYears": { "type": "integer" },
+        "totalSemesters": { "type": "integer" },
+        "hasBranches": { "type": "boolean" },
+        "published": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "code", "durationYears", "totalSemesters", "hasBranches", "published", "createdBy", "createdAt", "updatedAt"]
+    },
+    "AcademicBranch": {
+      "title": "AcademicBranch",
+      "description": "Configurable academic branch under a course.",
+      "type": "object",
+      "properties": {
+        "courseId": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "displayOrder": { "type": "integer" },
+        "published": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["courseId", "name", "code", "displayOrder", "published", "createdBy", "createdAt", "updatedAt"]
+    },
+    "AcademicSubject": {
+      "title": "AcademicSubject",
+      "description": "Subject mapped to course, branch, year, and semester.",
+      "type": "object",
+      "properties": {
+        "courseId": { "type": "string" },
+        "branchId": { "type": "string" },
+        "academicYear": { "type": "integer" },
+        "semester": { "type": "integer" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "credits": { "type": "integer" },
+        "published": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["courseId", "branchId", "academicYear", "semester", "name", "code", "credits", "published", "createdBy", "createdAt", "updatedAt"]
+    },
+    "ExamCategory": {
+      "title": "ExamCategory",
+      "description": "Configurable examination category (e.g. Internal 1, Internal 2, External).",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "displayOrder": { "type": "integer" },
+        "published": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "code", "displayOrder", "published", "createdBy", "createdAt", "updatedAt"]
+    },
+    "Notice": {
+      "title": "Notice",
+      "description": "College notice with target audience filters and optional attachment.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "category": { "type": "string", "enum": ["General", "Academic", "Exam", "Event", "Urgent"] },
+        "attachmentUrl": { "type": "string" },
+        "attachmentName": { "type": "string" },
+        "targetCourseId": { "type": "string" },
+        "targetBranchId": { "type": "string" },
+        "targetYear": { "type": "integer" },
+        "targetSemester": { "type": "integer" },
+        "published": { "type": "boolean" },
+        "important": { "type": "boolean" },
+        "authorName": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "message", "category", "targetCourseId", "targetBranchId", "targetYear", "targetSemester", "published", "important", "authorName", "createdBy", "createdAt", "updatedAt"]
+    },
+    "SyllabusItem": {
+      "title": "SyllabusItem",
+      "description": "Syllabus entry organized by course, branch, year, semester, and subject.",
+      "type": "object",
+      "properties": {
+        "courseId": { "type": "string" },
+        "branchId": { "type": "string" },
+        "academicYear": { "type": "integer" },
+        "semester": { "type": "integer" },
+        "subjectId": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "subjectCode": { "type": "string" },
+        "description": { "type": "string" },
+        "pdfUrl": { "type": "string" },
+        "fileSizeLabel": { "type": "string" },
+        "published": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["courseId", "branchId", "academicYear", "semester", "subjectId", "subjectName", "subjectCode", "description", "published", "createdBy", "createdAt", "updatedAt"]
+    },
+    "StudyMaterial": {
+      "title": "StudyMaterial",
+      "description": "Notes and study material organized by academic hierarchy.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "courseId": { "type": "string" },
+        "branchId": { "type": "string" },
+        "academicYear": { "type": "integer" },
+        "semester": { "type": "integer" },
+        "subjectId": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "unit": { "type": "string" },
+        "resourceType": { "type": "string", "enum": ["PDF", "IMAGE", "LINK"] },
+        "fileUrl": { "type": "string" },
+        "uploadedByName": { "type": "string" },
+        "published": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "description", "courseId", "branchId", "academicYear", "semester", "subjectId", "subjectName", "unit", "resourceType", "fileUrl", "uploadedByName", "published", "createdBy", "createdAt", "updatedAt"]
+    },
+    "ExamPaper": {
+      "title": "ExamPaper",
+      "description": "Previous year and internal/external exam paper.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "courseId": { "type": "string" },
+        "branchId": { "type": "string" },
+        "academicYear": { "type": "integer" },
+        "semester": { "type": "integer" },
+        "subjectId": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "examCategoryId": { "type": "string" },
+        "examCategoryName": { "type": "string" },
+        "examYear": { "type": "integer" },
+        "pdfUrl": { "type": "string" },
+        "published": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "courseId", "branchId", "academicYear", "semester", "subjectId", "subjectName", "examCategoryId", "examCategoryName", "examYear", "pdfUrl", "published", "createdBy", "createdAt", "updatedAt"]
+    },
+    "GalleryAlbum": {
+      "title": "GalleryAlbum",
+      "description": "College event photo album.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "eventCategory": { "type": "string", "enum": ["Cultural", "Technical", "Sports", "Campus", "Other"] },
+        "eventDateText": { "type": "string" },
+        "coverImageUrl": { "type": "string" },
+        "photoCount": { "type": "integer" },
+        "published": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "description", "eventCategory", "eventDateText", "photoCount", "published", "createdBy", "createdAt", "updatedAt"]
+    },
+    "GalleryPhoto": {
+      "title": "GalleryPhoto",
+      "description": "Photo belonging to a gallery album.",
+      "type": "object",
+      "properties": {
+        "albumId": { "type": "string" },
+        "caption": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "published": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["albumId", "caption", "imageUrl", "published", "createdBy", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/admins/{adminUid}": {
+      "schema": { "$ref": "#/entities/AdminAccount" },
+      "description": "Authorized college administrators"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/StudentProfile" },
+      "description": "Private student profile documents"
+    },
+    "/users/{userId}/read_notices/{noticeId}": {
+      "schema": { "$ref": "#/entities/ReadNotice" },
+      "description": "Private per-student notice read status"
+    },
+    "/academic_courses/{courseId}": {
+      "schema": { "$ref": "#/entities/AcademicCourse" },
+      "description": "Configurable degree courses"
+    },
+    "/academic_branches/{branchId}": {
+      "schema": { "$ref": "#/entities/AcademicBranch" },
+      "description": "Configurable branches per course"
+    },
+    "/academic_subjects/{subjectId}": {
+      "schema": { "$ref": "#/entities/AcademicSubject" },
+      "description": "Configurable subjects mapped to course, branch, year, and semester"
+    },
+    "/exam_categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/ExamCategory" },
+      "description": "Configurable exam categories"
+    },
+    "/notices/{noticeId}": {
+      "schema": { "$ref": "#/entities/Notice" },
+      "description": "College notices and announcements"
+    },
+    "/syllabus_items/{syllabusId}": {
+      "schema": { "$ref": "#/entities/SyllabusItem" },
+      "description": "Course syllabus entries"
+    },
+    "/study_materials/{materialId}": {
+      "schema": { "$ref": "#/entities/StudyMaterial" },
+      "description": "Notes and study material entries"
+    },
+    "/exam_papers/{paperId}": {
+      "schema": { "$ref": "#/entities/ExamPaper" },
+      "description": "Previous year and internal/external exam papers"
+    },
+    "/gallery_albums/{albumId}": {
+      "schema": { "$ref": "#/entities/GalleryAlbum" },
+      "description": "College event gallery albums"
+    },
+    "/gallery_photos/{photoId}": {
+      "schema": { "$ref": "#/entities/GalleryPhoto" },
+      "description": "Photos inside gallery albums"
+    }
+  }
+}

@@ -1,0 +1,433 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- GLOBAL HELPERS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    function isOptionalString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function isValidHttpUrl(url) {
+      return url is string && url.size() <= 1000 && (url.size() == 0 || url.matches('^https?://.*'));
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() &&
+             request.auth.token.email_verified == true &&
+             request.auth.token.email == 'agzyatwasi@gmail.com';
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() ||
+             (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    // --- VALIDATION HELPERS ---
+    function isValidAdmin(data) {
+      return data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             data.addedBy is string && data.addedBy.size() >= 1 && data.addedBy.size() <= 128 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 80 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+             data.rollNumber is string && data.rollNumber.size() >= 2 && data.rollNumber.size() <= 40 &&
+             data.courseId is string && data.courseId.size() >= 1 && data.courseId.size() <= 64 &&
+             data.courseName is string && data.courseName.size() >= 1 && data.courseName.size() <= 80 &&
+             isOptionalString(data, 'branchId', 64) &&
+             isOptionalString(data, 'branchName', 80) &&
+             data.academicYear is int && data.academicYear >= 1 && data.academicYear <= 6 &&
+             data.semester is int && data.semester >= 1 && data.semester <= 12 &&
+             (!('photoUrl' in data) || isValidHttpUrl(data.photoUrl)) &&
+             data.profileCompleted is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidReadNotice(data) {
+      return data.noticeId is string && isValidId(data.noticeId) &&
+             isValidTimestamp(data.readAt);
+    }
+
+    function isValidCourse(data) {
+      return data.name is string && data.name.size() >= 2 && data.name.size() <= 60 &&
+             data.code is string && data.code.size() >= 2 && data.code.size() <= 20 &&
+             data.durationYears is int && data.durationYears >= 1 && data.durationYears <= 6 &&
+             data.totalSemesters is int && data.totalSemesters >= 1 && data.totalSemesters <= 12 &&
+             data.hasBranches is bool &&
+             data.published is bool &&
+             data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidBranch(data) {
+      return data.courseId is string && isValidId(data.courseId) &&
+             data.name is string && data.name.size() >= 2 && data.name.size() <= 80 &&
+             data.code is string && data.code.size() >= 1 && data.code.size() <= 20 &&
+             data.displayOrder is int && data.displayOrder >= 0 && data.displayOrder <= 50 &&
+             data.published is bool &&
+             data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidSubject(data) {
+      return data.courseId is string && isValidId(data.courseId) &&
+             data.branchId is string && data.branchId.size() <= 128 &&
+             data.academicYear is int && data.academicYear >= 1 && data.academicYear <= 6 &&
+             data.semester is int && data.semester >= 1 && data.semester <= 12 &&
+             data.name is string && data.name.size() >= 2 && data.name.size() <= 100 &&
+             data.code is string && data.code.size() >= 2 && data.code.size() <= 24 &&
+             data.credits is int && data.credits >= 0 && data.credits <= 20 &&
+             data.published is bool &&
+             data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidExamCategory(data) {
+      return data.name is string && data.name.size() >= 2 && data.name.size() <= 60 &&
+             data.code is string && data.code.size() >= 2 && data.code.size() <= 24 &&
+             data.displayOrder is int && data.displayOrder >= 0 && data.displayOrder <= 50 &&
+             data.published is bool &&
+             data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidNotice(data) {
+      return data.title is string && data.title.size() >= 3 && data.title.size() <= 140 &&
+             data.message is string && data.message.size() >= 3 && data.message.size() <= 4000 &&
+             data.category in ['General', 'Academic', 'Exam', 'Event', 'Urgent'] &&
+             (!('attachmentUrl' in data) || isValidHttpUrl(data.attachmentUrl)) &&
+             isOptionalString(data, 'attachmentName', 120) &&
+             data.targetCourseId is string && data.targetCourseId.size() >= 1 && data.targetCourseId.size() <= 64 &&
+             data.targetBranchId is string && data.targetBranchId.size() >= 1 && data.targetBranchId.size() <= 64 &&
+             data.targetYear is int && data.targetYear >= 0 && data.targetYear <= 6 &&
+             data.targetSemester is int && data.targetSemester >= 0 && data.targetSemester <= 12 &&
+             data.published is bool &&
+             data.important is bool &&
+             data.authorName is string && data.authorName.size() >= 2 && data.authorName.size() <= 80 &&
+             data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidSyllabus(data) {
+      return data.courseId is string && isValidId(data.courseId) &&
+             data.branchId is string && data.branchId.size() <= 128 &&
+             data.academicYear is int && data.academicYear >= 1 && data.academicYear <= 6 &&
+             data.semester is int && data.semester >= 1 && data.semester <= 12 &&
+             data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 128 &&
+             data.subjectName is string && data.subjectName.size() >= 2 && data.subjectName.size() <= 120 &&
+             data.subjectCode is string && data.subjectCode.size() >= 2 && data.subjectCode.size() <= 24 &&
+             data.description is string && data.description.size() >= 3 && data.description.size() <= 3000 &&
+             (!('pdfUrl' in data) || isValidHttpUrl(data.pdfUrl)) &&
+             isOptionalString(data, 'fileSizeLabel', 40) &&
+             data.published is bool &&
+             data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidStudyMaterial(data) {
+      return data.title is string && data.title.size() >= 3 && data.title.size() <= 140 &&
+             data.description is string && data.description.size() <= 2000 &&
+             data.courseId is string && isValidId(data.courseId) &&
+             data.branchId is string && data.branchId.size() <= 128 &&
+             data.academicYear is int && data.academicYear >= 1 && data.academicYear <= 6 &&
+             data.semester is int && data.semester >= 1 && data.semester <= 12 &&
+             data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 128 &&
+             data.subjectName is string && data.subjectName.size() >= 2 && data.subjectName.size() <= 120 &&
+             data.unit is string && data.unit.size() >= 1 && data.unit.size() <= 60 &&
+             data.resourceType in ['PDF', 'IMAGE', 'LINK'] &&
+             isValidHttpUrl(data.fileUrl) && data.fileUrl.size() >= 8 &&
+             data.uploadedByName is string && data.uploadedByName.size() >= 2 && data.uploadedByName.size() <= 80 &&
+             data.published is bool &&
+             data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidExamPaper(data) {
+      return data.title is string && data.title.size() >= 3 && data.title.size() <= 140 &&
+             data.courseId is string && isValidId(data.courseId) &&
+             data.branchId is string && data.branchId.size() <= 128 &&
+             data.academicYear is int && data.academicYear >= 1 && data.academicYear <= 6 &&
+             data.semester is int && data.semester >= 1 && data.semester <= 12 &&
+             data.subjectId is string && data.subjectId.size() >= 1 && data.subjectId.size() <= 128 &&
+             data.subjectName is string && data.subjectName.size() >= 2 && data.subjectName.size() <= 120 &&
+             data.examCategoryId is string && data.examCategoryId.size() >= 1 && data.examCategoryId.size() <= 128 &&
+             data.examCategoryName is string && data.examCategoryName.size() >= 2 && data.examCategoryName.size() <= 60 &&
+             data.examYear is int && data.examYear >= 2000 && data.examYear <= 2100 &&
+             isValidHttpUrl(data.pdfUrl) && data.pdfUrl.size() >= 8 &&
+             data.published is bool &&
+             data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidGalleryAlbum(data) {
+      return data.title is string && data.title.size() >= 3 && data.title.size() <= 120 &&
+             data.description is string && data.description.size() <= 1500 &&
+             data.eventCategory in ['Cultural', 'Technical', 'Sports', 'Campus', 'Other'] &&
+             data.eventDateText is string && data.eventDateText.size() >= 3 && data.eventDateText.size() <= 40 &&
+             (!('coverImageUrl' in data) || isValidHttpUrl(data.coverImageUrl)) &&
+             data.photoCount is int && data.photoCount >= 0 && data.photoCount <= 500 &&
+             data.published is bool &&
+             data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidGalleryPhoto(data) {
+      return data.albumId is string && isValidId(data.albumId) &&
+             data.caption is string && data.caption.size() <= 240 &&
+             isValidHttpUrl(data.imageUrl) && data.imageUrl.size() >= 8 &&
+             (!('thumbnailUrl' in data) || isValidHttpUrl(data.thumbnailUrl)) &&
+             data.published is bool &&
+             data.createdBy is string && data.createdBy.size() >= 1 && data.createdBy.size() <= 128 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    // --- COLLECTION RULES ---
+
+    match /admins/{adminUid} {
+      allow get: if isSignedIn() && (request.auth.uid == adminUid || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidId(adminUid) &&
+                       incoming().uid == adminUid &&
+                       incoming().addedBy == request.auth.uid &&
+                       incoming().keys().hasAll(['uid', 'email', 'displayName', 'addedBy', 'createdAt']) &&
+                       incoming().keys().hasOnly(['uid', 'email', 'displayName', 'addedBy', 'createdAt']) &&
+                       isValidAdmin(incoming());
+      allow update: if isAdmin() && isValidId(adminUid) &&
+                       incoming().uid == existing().uid &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidAdmin(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['email', 'displayName']);
+      allow delete: if isAdmin() && isValidId(adminUid) && adminUid != request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'fullName', 'email', 'rollNumber', 'courseId', 'courseName', 'academicYear', 'semester', 'profileCompleted', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'fullName', 'email', 'rollNumber', 'courseId', 'courseName', 'branchId', 'branchName', 'academicYear', 'semester', 'photoUrl', 'profileCompleted', 'createdAt', 'updatedAt']) &&
+                       isValidUserProfile(incoming());
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin()) && isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().email == existing().email &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'rollNumber', 'courseId', 'courseName', 'branchId', 'branchName', 'academicYear', 'semester', 'photoUrl', 'profileCompleted', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(userId);
+
+      match /read_notices/{noticeId} {
+        allow get, list: if isSignedIn() && request.auth.uid == userId;
+        allow create, update: if isSignedIn() && request.auth.uid == userId && isValidId(noticeId) &&
+                                 incoming().noticeId == noticeId &&
+                                 incoming().keys().hasAll(['noticeId', 'readAt']) &&
+                                 incoming().keys().hasOnly(['noticeId', 'readAt']) &&
+                                 isValidReadNotice(incoming());
+        allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(noticeId);
+      }
+    }
+
+    match /academic_courses/{courseId} {
+      allow get: if isSignedIn() && (existing().published == true || isAdmin());
+      allow list: if isSignedIn() && (resource.data.published == true || resource.data.createdBy == request.auth.uid);
+      allow create: if isAdmin() && isValidId(courseId) &&
+                       incoming().createdBy == request.auth.uid &&
+                       incoming().keys().hasAll(['name', 'code', 'durationYears', 'totalSemesters', 'hasBranches', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['name', 'code', 'durationYears', 'totalSemesters', 'hasBranches', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       isValidCourse(incoming());
+      allow update: if isAdmin() && isValidId(courseId) &&
+                       incoming().createdBy == existing().createdBy &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidCourse(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'code', 'durationYears', 'totalSemesters', 'hasBranches', 'published', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(courseId);
+    }
+
+    match /academic_branches/{branchId} {
+      allow get: if isSignedIn() && (existing().published == true || isAdmin());
+      allow list: if isSignedIn() && (resource.data.published == true || resource.data.createdBy == request.auth.uid);
+      allow create: if isAdmin() && isValidId(branchId) &&
+                       incoming().createdBy == request.auth.uid &&
+                       incoming().keys().hasAll(['courseId', 'name', 'code', 'displayOrder', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['courseId', 'name', 'code', 'displayOrder', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       isValidBranch(incoming()) &&
+                       exists(/databases/$(database)/documents/academic_courses/$(incoming().courseId));
+      allow update: if isAdmin() && isValidId(branchId) &&
+                       incoming().createdBy == existing().createdBy &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidBranch(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['courseId', 'name', 'code', 'displayOrder', 'published', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(branchId);
+    }
+
+    match /academic_subjects/{subjectId} {
+      allow get: if isSignedIn() && (existing().published == true || isAdmin());
+      allow list: if isSignedIn() && (resource.data.published == true || resource.data.createdBy == request.auth.uid);
+      allow create: if isAdmin() && isValidId(subjectId) &&
+                       incoming().createdBy == request.auth.uid &&
+                       incoming().keys().hasAll(['courseId', 'branchId', 'academicYear', 'semester', 'name', 'code', 'credits', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['courseId', 'branchId', 'academicYear', 'semester', 'name', 'code', 'credits', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       isValidSubject(incoming());
+      allow update: if isAdmin() && isValidId(subjectId) &&
+                       incoming().createdBy == existing().createdBy &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidSubject(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['courseId', 'branchId', 'academicYear', 'semester', 'name', 'code', 'credits', 'published', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(subjectId);
+    }
+
+    match /exam_categories/{categoryId} {
+      allow get: if isSignedIn() && (existing().published == true || isAdmin());
+      allow list: if isSignedIn() && (resource.data.published == true || resource.data.createdBy == request.auth.uid);
+      allow create: if isAdmin() && isValidId(categoryId) &&
+                       incoming().createdBy == request.auth.uid &&
+                       incoming().keys().hasAll(['name', 'code', 'displayOrder', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['name', 'code', 'displayOrder', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       isValidExamCategory(incoming());
+      allow update: if isAdmin() && isValidId(categoryId) &&
+                       incoming().createdBy == existing().createdBy &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidExamCategory(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'code', 'displayOrder', 'published', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(categoryId);
+    }
+
+    match /notices/{noticeId} {
+      allow get: if isSignedIn() && (existing().published == true || isAdmin());
+      allow list: if isSignedIn() && (resource.data.published == true || resource.data.createdBy == request.auth.uid);
+      allow create: if isAdmin() && isValidId(noticeId) &&
+                       incoming().createdBy == request.auth.uid &&
+                       incoming().keys().hasAll(['title', 'message', 'category', 'targetCourseId', 'targetBranchId', 'targetYear', 'targetSemester', 'published', 'important', 'authorName', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['title', 'message', 'category', 'attachmentUrl', 'attachmentName', 'targetCourseId', 'targetBranchId', 'targetYear', 'targetSemester', 'published', 'important', 'authorName', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       isValidNotice(incoming());
+      allow update: if isAdmin() && isValidId(noticeId) &&
+                       incoming().createdBy == existing().createdBy &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidNotice(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'message', 'category', 'attachmentUrl', 'attachmentName', 'targetCourseId', 'targetBranchId', 'targetYear', 'targetSemester', 'published', 'important', 'authorName', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(noticeId);
+    }
+
+    match /syllabus_items/{syllabusId} {
+      allow get: if isSignedIn() && (existing().published == true || isAdmin());
+      allow list: if isSignedIn() && (resource.data.published == true || resource.data.createdBy == request.auth.uid);
+      allow create: if isAdmin() && isValidId(syllabusId) &&
+                       incoming().createdBy == request.auth.uid &&
+                       incoming().keys().hasAll(['courseId', 'branchId', 'academicYear', 'semester', 'subjectId', 'subjectName', 'subjectCode', 'description', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['courseId', 'branchId', 'academicYear', 'semester', 'subjectId', 'subjectName', 'subjectCode', 'description', 'pdfUrl', 'fileSizeLabel', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       isValidSyllabus(incoming());
+      allow update: if isAdmin() && isValidId(syllabusId) &&
+                       incoming().createdBy == existing().createdBy &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidSyllabus(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['courseId', 'branchId', 'academicYear', 'semester', 'subjectId', 'subjectName', 'subjectCode', 'description', 'pdfUrl', 'fileSizeLabel', 'published', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(syllabusId);
+    }
+
+    match /study_materials/{materialId} {
+      allow get: if isSignedIn() && (existing().published == true || isAdmin());
+      allow list: if isSignedIn() && (resource.data.published == true || resource.data.createdBy == request.auth.uid);
+      allow create: if isAdmin() && isValidId(materialId) &&
+                       incoming().createdBy == request.auth.uid &&
+                       incoming().keys().hasAll(['title', 'description', 'courseId', 'branchId', 'academicYear', 'semester', 'subjectId', 'subjectName', 'unit', 'resourceType', 'fileUrl', 'uploadedByName', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['title', 'description', 'courseId', 'branchId', 'academicYear', 'semester', 'subjectId', 'subjectName', 'unit', 'resourceType', 'fileUrl', 'uploadedByName', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       isValidStudyMaterial(incoming());
+      allow update: if isAdmin() && isValidId(materialId) &&
+                       incoming().createdBy == existing().createdBy &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidStudyMaterial(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'courseId', 'branchId', 'academicYear', 'semester', 'subjectId', 'subjectName', 'unit', 'resourceType', 'fileUrl', 'uploadedByName', 'published', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(materialId);
+    }
+
+    match /exam_papers/{paperId} {
+      allow get: if isSignedIn() && (existing().published == true || isAdmin());
+      allow list: if isSignedIn() && (resource.data.published == true || resource.data.createdBy == request.auth.uid);
+      allow create: if isAdmin() && isValidId(paperId) &&
+                       incoming().createdBy == request.auth.uid &&
+                       incoming().keys().hasAll(['title', 'courseId', 'branchId', 'academicYear', 'semester', 'subjectId', 'subjectName', 'examCategoryId', 'examCategoryName', 'examYear', 'pdfUrl', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['title', 'courseId', 'branchId', 'academicYear', 'semester', 'subjectId', 'subjectName', 'examCategoryId', 'examCategoryName', 'examYear', 'pdfUrl', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       isValidExamPaper(incoming());
+      allow update: if isAdmin() && isValidId(paperId) &&
+                       incoming().createdBy == existing().createdBy &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidExamPaper(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'courseId', 'branchId', 'academicYear', 'semester', 'subjectId', 'subjectName', 'examCategoryId', 'examCategoryName', 'examYear', 'pdfUrl', 'published', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(paperId);
+    }
+
+    match /gallery_albums/{albumId} {
+      allow get: if isSignedIn() && (existing().published == true || isAdmin());
+      allow list: if isSignedIn() && (resource.data.published == true || resource.data.createdBy == request.auth.uid);
+      allow create: if isAdmin() && isValidId(albumId) &&
+                       incoming().createdBy == request.auth.uid &&
+                       incoming().keys().hasAll(['title', 'description', 'eventCategory', 'eventDateText', 'photoCount', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['title', 'description', 'eventCategory', 'eventDateText', 'coverImageUrl', 'photoCount', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       isValidGalleryAlbum(incoming());
+      allow update: if isAdmin() && isValidId(albumId) &&
+                       incoming().createdBy == existing().createdBy &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidGalleryAlbum(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'eventCategory', 'eventDateText', 'coverImageUrl', 'photoCount', 'published', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(albumId);
+    }
+
+    match /gallery_photos/{photoId} {
+      allow get: if isSignedIn() && (existing().published == true || isAdmin());
+      allow list: if isSignedIn() && (resource.data.published == true || resource.data.createdBy == request.auth.uid);
+      allow create: if isAdmin() && isValidId(photoId) &&
+                       incoming().createdBy == request.auth.uid &&
+                       incoming().keys().hasAll(['albumId', 'caption', 'imageUrl', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['albumId', 'caption', 'imageUrl', 'thumbnailUrl', 'published', 'createdBy', 'createdAt', 'updatedAt']) &&
+                       isValidGalleryPhoto(incoming()) &&
+                       exists(/databases/$(database)/documents/gallery_albums/$(incoming().albumId));
+      allow update: if isAdmin() && isValidId(photoId) &&
+                       incoming().createdBy == existing().createdBy &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidGalleryPhoto(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['albumId', 'caption', 'imageUrl', 'thumbnailUrl', 'published', 'updatedAt']);
+      allow delete: if isAdmin() && isValidId(photoId);
+    }
+  }
+}

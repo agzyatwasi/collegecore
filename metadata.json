@@ -1,0 +1,6 @@
+{
+  "name": "College Core",
+  "description": "College management app for Govt. Institute of Technology (ITG) Gopeshwar featuring student & admin dashboards, notices, syllabus, study notes, exam papers, and photo gallery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

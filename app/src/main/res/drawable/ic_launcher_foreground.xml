@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Graduation cap mortarboard & academic shield inside 66dp safe zone -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,28L25,42L54,56L83,42L54,28Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M36,50.5V64.5C36,70.5 44.1,76 54,76C63.9,76 72,70.5 72,64.5V50.5L54,59.5L36,50.5Z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M78,44.5V63.5C78,65.2 76.7,66.5 75,66.5C73.3,66.5 72,65.2 72,63.5V47.3L78,44.5Z" />
+</vector>
